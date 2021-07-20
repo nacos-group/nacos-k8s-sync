@@ -1,0 +1,66 @@
+# Default values for nacos-k8s-sync.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+
+global:
+  namespace: "istio-system"
+  mseAddr: ""
+  msePort: "8848"
+
+autoscaling:
+  enabled: false
+
+image:
+  repository: registry.cn-zhangjiakou.aliyuncs.com/arch-nlp/nacos-sync
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: "nacos-k8s-sync-sa"
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 80
+
+
+resources: 
+  limits:
+    cpu: 2
+    memory: 1024Mi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

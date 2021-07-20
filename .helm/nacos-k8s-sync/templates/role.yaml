@@ -1,0 +1,9 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: nacos-k8s-sync-{{ .Values.global.namespace }}
+  namespace: {{ .Values.global.namespace }}
+rules:
+- apiGroups: [""]
+  resources: ["services", "endpoints"]
+  verbs: ["get", "watch", "list"]
