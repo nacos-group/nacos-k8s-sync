@@ -12,24 +12,24 @@ import (
 const (
 	// annotationServiceSync is the key of the annotation that determines
 	// whether to sync the Service resource or not.
-	annotationServiceSync = "nacos.alibaba.com/service-sync"
+	annotationServiceSync = "nacos.io/service-sync"
 
 	// annotationServiceName is set to override the name of the service
 	// registered.
-	annotationServiceName = "nacos.alibaba.com/service-name"
+	annotationServiceName = "nacos.io`/service-name"
 
 	// annotationServiceGroup is set to override the group of the service
 	// registered.
-	annotationServiceGroup = "nacos.alibaba.com/service-group"
+	annotationServiceGroup = "nacos.io/service-group"
 
 	// annotationServicePort specifies the port to use as the service instance
 	// port when registering a service. This can be a named port in the
 	// service or an integer value.
-	annotationServicePort = "nacos.alibaba.com/service-port"
+	annotationServicePort = "nacos.io/service-port"
 
 	// annotationServiceMeta specifies the meta of nacos service.
 	// The format must be json.
-	annotationServiceMeta = "nacos.alibaba.com/service-meta"
+	annotationServiceMeta = "nacos.io/service-meta"
 )
 
 func ShouldServiceSync(svc *v1.Service) bool {
