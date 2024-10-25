@@ -1,13 +1,13 @@
 package model
 
 import (
+	"github.com/nacos-group/nacos-sdk-go/v2/clients"
+	"github.com/nacos-group/nacos-sdk-go/v2/clients/naming_client"
+	"github.com/nacos-group/nacos-sdk-go/v2/common/constant"
+	"github.com/nacos-group/nacos-sdk-go/v2/vo"
 	"os"
 	"path"
 
-	"github.com/nacos-group/nacos-sdk-go/clients"
-	"github.com/nacos-group/nacos-sdk-go/clients/naming_client"
-	"github.com/nacos-group/nacos-sdk-go/common/constant"
-	"github.com/nacos-group/nacos-sdk-go/vo"
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/nacos-group/nacos-k8s-sync/pkg/logger"
@@ -115,7 +115,7 @@ func (c *nacosClient) RegisterServiceInstances(serviceInfo ServiceInfo, addresse
 			Metadata:    serviceInfo.Metadata,
 			ServiceName: serviceInfo.ServiceName,
 			GroupName:   serviceInfo.Group,
-			Ephemeral:   true,
+			Ephemeral:   false,
 		}); err != nil {
 			logger.Errorf("Register instance (%s:%d) with service (%s@@%s) fail, err %v.",
 				address.IP, address.Port, serviceInfo.ServiceName, serviceInfo.Group, err)
@@ -130,7 +130,7 @@ func (c *nacosClient) UnregisterServiceInstances(serviceInfo ServiceInfo, addres
 			Port:        address.Port,
 			ServiceName: serviceInfo.ServiceName,
 			GroupName:   serviceInfo.Group,
-			Ephemeral:   true,
+			Ephemeral:   false,
 		}); err != nil {
 			logger.Errorf("Unregister instance (%s:%d) with service (%s@@%s) fail, err %v.",
 				address.IP, address.Port, serviceInfo.ServiceName, serviceInfo.Group, err)

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/nacos-group/nacos-sdk-go/common/constant"
+	"github.com/nacos-group/nacos-sdk-go/v2/common/constant"
 	"github.com/spf13/cobra"
 	v1 "k8s.io/api/core/v1"
 

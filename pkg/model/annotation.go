@@ -2,7 +2,6 @@ package model
 
 import (
 	"encoding/json"
-	"strconv"
 
 	v1 "k8s.io/api/core/v1"
 
@@ -56,6 +55,7 @@ func GenerateServiceInfo(svc *v1.Service) (ServiceInfo, error) {
 
 	port, err := strconv.ParseUint(svc.Annotations[annotationServicePort], 0, 0)
 	if err != nil {
+		logger.Info("Failed to parse the service's port, caused: " + err.Error())
 		return ServiceInfo{}, err
 	}
 
@@ -63,6 +63,7 @@ func GenerateServiceInfo(svc *v1.Service) (ServiceInfo, error) {
 	rawMeta := svc.Annotations[annotationServiceMeta]
 	if rawMeta != "" {
 		if err := json.Unmarshal([]byte(svc.Annotations[annotationServiceMeta]), &meta); err != nil {
+			logger.Info("Failed to parse the service's meta, caused: " + err.Error() + ", raw meta: " + rawMeta)
 			return ServiceInfo{}, err
 		}
 	}
