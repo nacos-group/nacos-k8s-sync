@@ -1,16 +1,16 @@
 package tonacos
 
 import (
-	"reflect"
-	"sync"
-	"time"
-
 	"github.com/hashicorp/go-multierror"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	lister "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
+	"reflect"
+	"strconv"
+	"sync"
+	"time"
 
 	"github.com/nacos-group/nacos-k8s-sync/pkg/logger"
 	"github.com/nacos-group/nacos-k8s-sync/pkg/model"
@@ -61,6 +61,7 @@ func NewController(options model.NacosOptions, watchedNamespace string, kubeClie
 func (c *Controller) buildAddresses(service *v1.Service, serviceInfo model.ServiceInfo) ([]model.Address, error) {
 	endpoints, err := c.endpointsLister.Endpoints(c.watchedNamespace).Get(service.Name)
 	if err != nil {
+		logger.Errorf("Get endpoints (%s:%s) fail.", service.Name, service.Namespace)
 		return nil, err
 	}
 	addresses := model.ConvertToAddresses(serviceInfo.Port, endpoints)
@@ -74,7 +75,9 @@ func (c *Controller) onServiceEvent(old, curr interface{}, event model.Event) er
 	}
 
 	currShouldSync := model.ShouldServiceSync(currService)
-	if !currShouldSync && event != model.EventUpdate {
+	logger.Info("should sync: " + strconv.FormatBool(currShouldSync))
+	logger.Info("Service (%s:%s) event: %s", currService.Name, currService.Namespace, event)
+	if !currShouldSync {
 		logger.Infof("Curr Service (%s:%s) should not be synced.", currService.Name, currService.Namespace)
 		return nil
 	}

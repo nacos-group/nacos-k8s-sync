@@ -21,6 +21,9 @@ type NacosOptions struct {
 
 	// ServerPort are explicitly specified to be used when the client connects to nacos.
 	ServerPort uint64
+
+	AccessKey string
+	SecretKey string
 }
 
 func ConvertToNacosClientParam(options NacosOptions) vo.NacosClientParam {
@@ -66,11 +69,14 @@ type NacosClient interface {
 	RegisterServiceInstances(serviceInfo ServiceInfo, addresses []Address)
 
 	UnregisterServiceInstances(serviceInfo ServiceInfo, addresses []Address)
+
+	UpdateServiceHealthCheckType(key ServiceKey) bool
 }
 
 type nacosClient struct {
 	client      naming_client.INamingClient
 	servicesMap map[ServiceKey][]Address
+	httpSdk     *NacosHttpSdk
 }
 
 func NewNacosClient(options NacosOptions) (NacosClient, error) {
@@ -83,19 +89,26 @@ func NewNacosClient(options NacosOptions) (NacosClient, error) {
 	return &nacosClient{
 		client:      client,
 		servicesMap: make(map[ServiceKey][]Address),
+		httpSdk:     NewNacosHttpSdk(options),
 	}, nil
 }
-
+func (c *nacosClient) UpdateServiceHealthCheckType(key ServiceKey) bool {
+	return c.httpSdk.UpdateServiceHealthCheckTypeToNone(key)
+}
 func (c *nacosClient) RegisterService(serviceInfo ServiceInfo, addresses []Address) {
-	old := c.servicesMap[serviceInfo.ServiceKey]
-	added, deleted := diffAddresses(old, addresses)
-	logger.Infof("Register service (%s@@%s), added %d, deleted %d.",
-		serviceInfo.ServiceName, serviceInfo.Group, len(added), len(deleted))
+	if c.UpdateServiceHealthCheckType(serviceInfo.ServiceKey) {
+		old := c.servicesMap[serviceInfo.ServiceKey]
+		added, deleted := diffAddresses(old, addresses)
+		logger.Infof("Register service (%s@@%s), added %d, deleted %d.",
+			serviceInfo.ServiceName, serviceInfo.Group, len(added), len(deleted))
 
-	c.RegisterServiceInstances(serviceInfo, added)
-	c.UnregisterServiceInstances(serviceInfo, deleted)
+		c.RegisterServiceInstances(serviceInfo, added)
+		c.UnregisterServiceInstances(serviceInfo, deleted)
 
-	c.servicesMap[serviceInfo.ServiceKey] = addresses
+		c.servicesMap[serviceInfo.ServiceKey] = addresses
+	} else {
+		logger.Warnf("Register service fail, service (%s@@%s) is not registered.", serviceInfo.ServiceName, serviceInfo.Group)
+	}
 }
 
 func (c *nacosClient) UnregisterService(serviceInfo ServiceInfo) {
@@ -105,8 +118,14 @@ func (c *nacosClient) UnregisterService(serviceInfo ServiceInfo) {
 }
 
 func (c *nacosClient) RegisterServiceInstances(serviceInfo ServiceInfo, addresses []Address) {
+	if !c.UpdateServiceHealthCheckType(serviceInfo.ServiceKey) {
+		logger.Warnf("Update service health check type fail, service (%s@@%s) is not registered.", serviceInfo.ServiceName, serviceInfo.Group)
+		return
+	}
+
+	instances := make([]vo.RegisterInstanceParam, 0, len(addresses))
 	for _, address := range addresses {
-		if _, err := c.client.RegisterInstance(vo.RegisterInstanceParam{
+		instances = append(instances, vo.RegisterInstanceParam{
 			Ip:          address.IP,
 			Port:        address.Port,
 			Weight:      DefaultNacosEndpointWeight,
@@ -116,10 +135,31 @@ func (c *nacosClient) RegisterServiceInstances(serviceInfo ServiceInfo, addresse
 			ServiceName: serviceInfo.ServiceName,
 			GroupName:   serviceInfo.Group,
 			Ephemeral:   false,
-		}); err != nil {
-			logger.Errorf("Register instance (%s:%d) with service (%s@@%s) fail, err %v.",
-				address.IP, address.Port, serviceInfo.ServiceName, serviceInfo.Group, err)
-		}
+		})
+		//if _, err := c.client.RegisterInstance(vo.RegisterInstanceParam{
+		//	Ip:          address.IP,
+		//	Port:        address.Port,
+		//	Weight:      DefaultNacosEndpointWeight,
+		//	Enable:      true,
+		//	Healthy:     true,
+		//	Metadata:    serviceInfo.Metadata,
+		//	ServiceName: serviceInfo.ServiceName,
+		//	GroupName:   serviceInfo.Group,
+		//	Ephemeral:   false,
+		//}); err != nil {
+		//	logger.Errorf("Register instance (%s:%d) with service (%s@@%s) fail, err %v.",
+		//		address.IP, address.Port, serviceInfo.ServiceName, serviceInfo.Group, err)
+		//}
+	}
+
+	success, err := c.client.BatchRegisterInstance(vo.BatchRegisterInstanceParam{
+		ServiceName: serviceInfo.ServiceName,
+		GroupName:   serviceInfo.Group,
+		Instances:   instances,
+	})
+
+	if !success || err != nil {
+		logger.Errorf("Batch register instances with service (%s@@%s) fail, instances: %s,  err %v.", serviceInfo.ServiceName, serviceInfo.Group, instances, err)
 	}
 }
 
