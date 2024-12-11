@@ -122,10 +122,8 @@ func (c *nacosClient) RegisterServiceInstances(serviceInfo ServiceInfo, addresse
 		logger.Warnf("Update service health check type fail, service (%s@@%s) is not registered.", serviceInfo.ServiceName, serviceInfo.Group)
 		return
 	}
-
-	instances := make([]vo.RegisterInstanceParam, 0, len(addresses))
 	for _, address := range addresses {
-		instances = append(instances, vo.RegisterInstanceParam{
+		if _, err := c.client.RegisterInstance(vo.RegisterInstanceParam{
 			Ip:          address.IP,
 			Port:        address.Port,
 			Weight:      DefaultNacosEndpointWeight,
@@ -135,31 +133,10 @@ func (c *nacosClient) RegisterServiceInstances(serviceInfo ServiceInfo, addresse
 			ServiceName: serviceInfo.ServiceName,
 			GroupName:   serviceInfo.Group,
 			Ephemeral:   false,
-		})
-		//if _, err := c.client.RegisterInstance(vo.RegisterInstanceParam{
-		//	Ip:          address.IP,
-		//	Port:        address.Port,
-		//	Weight:      DefaultNacosEndpointWeight,
-		//	Enable:      true,
-		//	Healthy:     true,
-		//	Metadata:    serviceInfo.Metadata,
-		//	ServiceName: serviceInfo.ServiceName,
-		//	GroupName:   serviceInfo.Group,
-		//	Ephemeral:   false,
-		//}); err != nil {
-		//	logger.Errorf("Register instance (%s:%d) with service (%s@@%s) fail, err %v.",
-		//		address.IP, address.Port, serviceInfo.ServiceName, serviceInfo.Group, err)
-		//}
-	}
-
-	success, err := c.client.BatchRegisterInstance(vo.BatchRegisterInstanceParam{
-		ServiceName: serviceInfo.ServiceName,
-		GroupName:   serviceInfo.Group,
-		Instances:   instances,
-	})
-
-	if !success || err != nil {
-		logger.Errorf("Batch register instances with service (%s@@%s) fail, instances: %s,  err %v.", serviceInfo.ServiceName, serviceInfo.Group, instances, err)
+		}); err != nil {
+			logger.Errorf("Register instance (%s:%d) with service (%s@@%s) fail, err %v.",
+				address.IP, address.Port, serviceInfo.ServiceName, serviceInfo.Group, err)
+		}
 	}
 }
 
